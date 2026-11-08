@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MyMusicISM — AI Music Studio</title>
+  <meta name="description" content="Generate original songs with AI. Describe a vibe or write your own lyrics." />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎵</text></svg>" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="logo">♪</span> MyMusicISM</div>
+    <div class="credits" id="credits" title="Remaining SunoAPI credits">Credits: —</div>
+  </header>
+
+  <main class="wrap">
+    <section class="hero">
+      <h1>Turn an idea into a song.</h1>
+      <p>Describe a vibe, or take full control with your own lyrics and style. Each request creates two variations.</p>
+    </section>
+
+    <section class="card" id="access-card" hidden>
+      <label for="access-code">Access code</label>
+      <div class="row">
+        <input id="access-code" type="password" placeholder="Enter the code you were given" />
+        <button class="btn secondary" id="save-code" type="button">Save</button>
+      </div>
+    </section>
+
+    <form class="card" id="gen-form" autocomplete="off">
+      <div class="tabs" role="tablist">
+        <button type="button" role="tab" class="tab active" data-mode="simple" aria-selected="true">Simple</button>
+        <button type="button" role="tab" class="tab" data-mode="custom" aria-selected="false">Custom</button>
+      </div>
+
+      <!-- Simple mode -->
+      <div class="mode" data-panel="simple">
+        <label for="prompt">Describe your song</label>
+        <textarea id="prompt" maxlength="3000" rows="4" placeholder="An upbeat summer pop song about road trips with friends, bright guitars and catchy chorus"></textarea>
+        <div class="chips" id="idea-chips"></div>
+        <label for="simple-style">Style <span class="muted">(optional)</span></label>
+        <input id="simple-style" maxlength="1000" placeholder="e.g. indie pop, acoustic" />
+      </div>
+
+      <!-- Custom mode -->
+      <div class="mode" data-panel="custom" hidden>
+        <div class="grid2">
+          <div>
+            <label for="title">Title</label>
+            <input id="title" maxlength="80" placeholder="Midnight Drive" />
+          </div>
+          <div>
+            <label for="style">Style</label>
+            <input id="style" maxlength="1000" placeholder="synthwave, female vocals, 110 bpm" />
+          </div>
+        </div>
+
+        <div class="lyrics-head" id="lyrics-block">
+          <label for="lyrics">Lyrics</label>
+          <button type="button" class="link" id="ai-lyrics-toggle">✨ Write lyrics with AI</button>
+        </div>
+        <div class="ai-lyrics" id="ai-lyrics" hidden>
+          <div class="row">
+            <input id="lyrics-prompt" maxlength="200" placeholder="What should the song be about?" />
+            <button type="button" class="btn secondary" id="lyrics-go">Generate</button>
+          </div>
+          <div id="lyrics-options" class="lyrics-options"></div>
+        </div>
+        <textarea id="lyrics" maxlength="5000" rows="8" placeholder="[Verse]&#10;City lights are calling...&#10;&#10;[Chorus]&#10;..."></textarea>
+
+        <details class="advanced">
+          <summary>Advanced options</summary>
+          <div class="grid2">
+            <div>
+              <label for="negative">Exclude styles</label>
+              <input id="negative" maxlength="1000" placeholder="heavy metal, screaming" />
+            </div>
+            <div>
+              <label for="gender">Vocal gender</label>
+              <select id="gender">
+                <option value="">No preference</option>
+                <option value="f">Female</option>
+                <option value="m">Male</option>
+              </select>
+            </div>
+          </div>
+          <div class="grid3">
+            <div>
+              <label for="styleWeight">Style adherence <output id="styleWeight-out">0.65</output></label>
+              <input type="range" id="styleWeight" min="0" max="1" step="0.05" value="0.65" />
+            </div>
+            <div>
+              <label for="weird">Weirdness <output id="weird-out">0.5</output></label>
+              <input type="range" id="weird" min="0" max="1" step="0.05" value="0.5" />
+            </div>
+            <div>
+              <label for="variety">Variety <output id="variety-out">1</output></label>
+              <input type="range" id="variety" min="0" max="4" step="1" value="1" />
+            </div>
+          </div>
+          <label for="duration">Target duration (seconds) <span class="muted">(optional, 10–360)</span></label>
+          <input id="duration" type="number" min="10" max="360" placeholder="Leave blank for full song" />
+        </details>
+      </div>
+
+      <div class="controls">
+        <label class="switch">
+          <input type="checkbox" id="instrumental" />
+          <span class="slider"></span>
+          Instrumental (no vocals)
+        </label>
+        <select id="model" aria-label="Model">
+          <option value="V6">V6 · best quality</option>
+          <option value="V6_WILD">V6 Wild · bolder</option>
+          <option value="V6_MINI">V6 Mini · fastest</option>
+        </select>
+      </div>
+
+      <button type="submit" class="btn primary big" id="submit">Generate music</button>
+      <p class="error" id="form-error" role="alert"></p>
+    </form>
+
+    <section>
+      <div class="section-head">
+        <h2>Your tracks</h2>
+        <button class="link" id="clear-history" type="button">Clear history</button>
+      </div>
+      <div id="jobs" class="jobs"></div>
+      <p class="muted empty" id="empty">Nothing yet — your songs will appear here. Files are kept by the provider for about 14 days, so download the ones you love.</p>
+    </section>
+  </main>
+
+  <footer class="foot">Powered by SunoAPI.org</footer>
+
+  <template id="job-tpl">
+    <article class="job">
+      <div class="job-head">
+        <div>
+          <div class="job-title"></div>
+          <div class="job-meta muted"></div>
+        </div>
+        <span class="badge"></span>
+      </div>
+      <div class="progress"><div class="bar"></div></div>
+      <div class="tracks"></div>
+      <p class="error job-error"></p>
+    </article>
+  </template>
+
+  <script src="app.js"></script>
+</body>
+</html>
